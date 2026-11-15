@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>相对估值 · Thesis 追踪</title>
+  <style>
+    :root {
+      --bg: #f3f0e8;
+      --bg-accent: #ece7db;
+      --surface: #fffdf8;
+      --surface-2: #f6f1e6;
+      --text: #1c1915;
+      --muted: #6b6458;
+      --line: #e2dcd0;
+      --line-strong: #cfc6b6;
+      --accent: #8a4b12;
+      --accent-soft: #f4e4d0;
+      --shadow: 0 1px 2px rgba(28, 25, 21, 0.04), 0 8px 24px rgba(28, 25, 21, 0.05);
+      --up: #0c7a42;
+      --down: #c0392b;
+      --up-bg: rgba(12, 122, 66, 0.1);
+      --down-bg: rgba(192, 57, 43, 0.1);
+      --money: #9a6b16;
+      --money-bg: rgba(154, 107, 22, 0.12);
+      --issuing: #2c5aa0;
+      --issuing-bg: rgba(44, 90, 160, 0.12);
+      --trading: #0f6e6e;
+      --trading-bg: rgba(15, 110, 110, 0.12);
+      --danger: #9b1c1c;
+      --danger-bg: #fdecec;
+      --bar: #8a4b12;
+      --focus: #8a4b12;
+      --radius: 14px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12110e;
+        --bg-accent: #191713;
+        --surface: #1c1b17;
+        --surface-2: #26241f;
+        --text: #f3efe6;
+        --muted: #a39b8c;
+        --line: #343027;
+        --line-strong: #4a453b;
+        --accent: #e0b06a;
+        --accent-soft: #3a2e1c;
+        --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 10px 28px rgba(0, 0, 0, 0.28);
+        --up: #3dd68c;
+        --down: #f07178;
+        --up-bg: rgba(61, 214, 140, 0.12);
+        --down-bg: rgba(240, 113, 120, 0.12);
+        --money: #e0b06a;
+        --money-bg: rgba(224, 176, 106, 0.14);
+        --issuing: #7eb8ff;
+        --issuing-bg: rgba(126, 184, 255, 0.14);
+        --trading: #5ec8c5;
+        --trading-bg: rgba(94, 200, 197, 0.14);
+        --danger: #ffb4b4;
+        --danger-bg: #3a1c1c;
+        --bar: #e0b06a;
+        --focus: #e0b06a;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: "SF Pro Text", "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Source Han Sans SC", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+      background:
+        radial-gradient(1200px 400px at 10% -10%, var(--bg-accent), transparent 50%),
+        var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      min-height: 100vh;
+    }
+    a { color: var(--accent); }
+    a:hover { text-decoration: underline; }
+
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+
+    header.hero {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px 32px;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 22px;
+    }
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 650;
+      margin: 0 0 6px;
+    }
+    h1 {
+      font-size: clamp(28px, 5vw, 40px);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin: 0 0 10px;
+      font-weight: 700;
+    }
+    .lede {
+      margin: 0;
+      max-width: 46em;
+      color: var(--muted);
+      font-size: 15px;
+    }
+
+    .status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 8px 8px 16px;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+    }
+    .status .meta { color: var(--muted); }
+    .status strong { font-weight: 650; }
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--up);
+      display: inline-block;
+      margin-right: 2px;
+    }
+    .dot.busy {
+      background: var(--accent);
+      animation: pulse 1s ease-in-out infinite;
+    }
+    .dot.err { background: var(--down); animation: none; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.35; }
+    }
+
+    button, .btn {
+      appearance: none;
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      color: var(--text);
+      border-radius: 999px;
+      padding: 7px 14px;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover, .btn:hover { border-color: var(--accent); }
+    button:focus-visible, .btn:focus-visible, input:focus-visible, select:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+    button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fffdf8;
+    }
+    @media (prefers-color-scheme: dark) {
+      button.primary { color: #1c1915; }
+    }
+    button:disabled {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    .banner {
+      display: none;
+      background: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid color-mix(in srgb, var(--danger) 25%, var(--line));
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      margin: 0 0 20px;
+      font-size: 14px;
+    }
+    .banner.show { display: block; }
+
+    nav.toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      margin: 0 0 28px;
+      font-size: 13px;
+    }
+    nav.toc a {
+      color: var(--muted);
+      text-decoration: none;
+    }
+    nav.toc a:hover { color: var(--accent); }
+
+    .insight {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+      margin: 0 0 28px;
+      font-size: 14px;
+    }
+    .insight strong { font-weight: 650; }
+
+    section.block { margin: 0 0 40px; }
+    section.block > h2 {
+      font-size: 22px;
+      letter-spacing: -0.02em;
+      margin: 0 0 6px;
+    }
+    .caption {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 14px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      min-width: 720px;
+    }
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th {
+      font-weight: 650;
+      font-size: 12px;
+      color: var(--muted);
+      background: var(--surface-2);
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tbody tr:hover { background: color-mix(in srgb, var(--accent-soft) 55%, var(--surface)); }
+    .intro { color: var(--muted); max-width: 22em; }
+    .mono { font-variant-numeric: tabular-nums; }
+
+    th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    th.sortable button {
+      all: unset;
+      cursor: pointer;
+      display: inline-flex;
+      gap: 4px;
+      align-items: center;
+      width: 100%;
+    }
+    th.num.sortable button { justify-content: flex-end; }
+    .sort-ind { color: var(--accent); font-size: 10px; }
+
+    .coin {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 160px;
+    }
+    .coin img {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      flex: 0 0 22px;
+    }
+    .coin .sym {
+      font-weight: 700;
+      letter-spacing: 0.01em;
+    }
+    .coin .name {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 400;
+    }
+
+    .chg.up { color: var(--up); background: var(--up-bg); }
+    .chg.down { color: var(--down); background: var(--down-bg); }
+    .chg {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-variant-numeric: tabular-nums;
+      font-weight: 650;
+      font-size: 12.5px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    .tag.Money { color: var(--money); background: var(--money-bg); }
+    .tag.Issuing { color: var(--issuing); background: var(--issuing-bg); }
+    .tag.Trading { color: var(--trading); background: var(--trading-bg); }
+
+    .cats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+    .cat-card { padding: 16px 16px 18px; }
+    .cat-card h3 {
+      margin: 0 0 4px;
+      font-size: 16px;
+    }
+    .cat-card .caption { margin-bottom: 12px; }
+    .bar-row { margin: 0 0 12px; }
+    .bar-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      margin-bottom: 5px;
+    }
+    .bar-meta .val { font-variant-numeric: tabular-nums; font-weight: 650; }
+    .bar-track {
+      height: 8px;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: var(--bar);
+      transition: width 0.45s ease;
+    }
+    .cat-card.Money .bar-fill { background: var(--money); }
+    .cat-card.Issuing .bar-fill { background: var(--issuing); }
+    .cat-card.Trading .bar-fill { background: var(--trading); }
+    .note {
+      margin: 8px 0 0;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .calc {
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+    .seg {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .seg button[aria-pressed="true"],
+    .quick button[aria-pressed="true"] {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fffdf8;
+    }
+    @media (prefers-color-scheme: dark) {
+      .seg button[aria-pressed="true"],
+      .quick button[aria-pressed="true"] { color: #1c1915; }
+    }
+    .target-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      align-items: flex-end;
+    }
+    label.field {
+      display: grid;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    label.field input {
+      font: inherit;
+      font-variant-numeric: tabular-nums;
+      font-size: 16px;
+      padding: 8px 10px;
+      width: 140px;
+      border-radius: 10px;
+      border: 1px solid var(--line-strong);
+      background: var(--surface-2);
+      color: var(--text);
+    }
+    .quick { display: flex; flex-wrap: wrap; gap: 6px; }
+    .props {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+    }
+    .prop {
+      background: var(--surface-2);
+      border-radius: 12px;
+      padding: 12px 14px;
+    }
+    .prop .k {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .prop .v {
+      font-size: 18px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .prop .v.down { color: var(--down); }
+    .prop .v.up { color: var(--up); }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin: 0 0 12px;
+    }
+    .toolbar input[type="search"] {
+      flex: 1 1 220px;
+      min-width: 180px;
+      font: inherit;
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line-strong);
+      background: var(--surface);
+      color: var(--text);
+    }
+    .count { color: var(--muted); font-size: 13px; margin-left: auto; }
+
+    .method {
+      color: var(--muted);
+      font-size: 13px;
+      margin: 0 0 16px;
+      max-width: 70em;
+    }
+
+    footer {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 13px;
+      border-top: 1px solid var(--line);
+      padding-top: 18px;
+    }
+
+    @media (max-width: 860px) {
+      .cats { grid-template-columns: 1fr; }
+      .status { border-radius: 16px; }
+      table { min-width: 860px; }
+    }
+    @media (max-width: 560px) {
+      .wrap { padding: 18px 14px 48px; }
+      .status { width: 100%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .dot.busy { animation: none; }
+      .bar-fill { transition: none; }
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Investment Thesis</p>
+        <h1>相对估值</h1>
+        <p class="lede">按 Money、Issuing、Trading 三类，用关注标的 FDV 占代表币 FDV 的比例做相对估值。打开本页后由浏览器直接请求 CoinGecko 公开接口，约每 60 秒自动刷新。</p>
+      </div>
+      <div class="status" aria-live="polite">
+        <span class="dot" id="statusDot"></span>
+        <span class="meta">最后更新 <strong id="lastUpdated">尚未加载</strong></span>
+        <span class="meta">距下次刷新 <strong id="countdown">—</strong></span>
+        <button type="button" class="primary" id="refreshBtn">刷新</button>
+      </div>
+    </header>
+
+    <div class="banner" id="errorBanner" role="alert"></div>
+
+    <nav class="toc" aria-label="页面目录">
+      <a href="#valuation">相对估值</a>
+      <a href="#categories">三类对比</a>
+      <a href="#calculator">目标价计算器</a>
+      <a href="#scenarios">情景价</a>
+      <a href="#top100">CoinGecko 前 100</a>
+    </nav>
+
+    <div class="insight" id="insight">正在加载行情…</div>
+
+    <section class="block" id="valuation">
+      <h2>相对估值</h2>
+      <p class="method">相对占比 = 标的 FDV ÷ 代表币 FDV。隐含价格 = 现价 ×（目标占比 ÷ 当前占比）。FDV 取 CoinGecko 的 fully_diluted_valuation，若缺失则回退到市值。流通比例 = 流通量 ÷ 总供应量（若无总供应量则用上限供应量）。市值占比 = 标的市值 ÷ 代表币 FDV，用来对照尚未完全流通的标的。</p>
+      <p class="caption">流通比例与 FDV 口径一致。数据在浏览器内现场计算。</p>
+      <div class="card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>标的</th>
+                <th>简介</th>
+                <th class="num">现价</th>
+                <th class="num">FDV</th>
+                <th class="num">流通比例</th>
+                <th>代表币</th>
+                <th class="num">FDV 占比</th>
+                <th class="num">市值占比</th>
+                <th class="num">到同等 FDV</th>
+              </tr>
+            </thead>
+            <tbody id="valuationBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="categories">
+      <h2>三类对比</h2>
+      <p class="caption">每个类别内按当前最大 FDV 占比拉满柱宽，便于比较；柱旁数字仍是相对代表币的实际占比。</p>
+      <div class="cats" id="categoryGrid"></div>
+    </section>
+
+    <section class="block" id="calculator">
+      <h2>目标价计算器</h2>
+      <p class="caption">选择一对估值关系，设定目标 FDV 占比，查看隐含估值与价格。</p>
+      <div class="card calc">
+        <div class="seg" id="pairSeg" role="tablist" aria-label="估值配对"></div>
+        <div class="target-row">
+          <label class="field">目标占比（%）
+            <input type="number" id="targetInput" min="0" step="0.1" value="5" inputmode="decimal">
+          </label>
+          <div class="quick" id="quickPct"></div>
+        </div>
+        <div class="props" id="calcProps"></div>
+      </div>
+    </section>
+
+    <section class="block" id="scenarios">
+      <h2>情景价</h2>
+      <p class="caption">若目标低于当前占比，隐含价会低于现价。</p>
+      <div class="card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>标的</th>
+                <th>代表币</th>
+                <th class="num">当前占比</th>
+                <th class="num">现价</th>
+                <th class="num">5%</th>
+                <th class="num">10%</th>
+                <th class="num">20%</th>
+                <th class="num">50%</th>
+                <th class="num">100%</th>
+              </tr>
+            </thead>
+            <tbody id="scenarioBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="top100">
+      <h2>CoinGecko 前 100</h2>
+      <p class="caption">可按列排序；Thesis 标的即使跌出前 100 也会在「Thesis 标的」视图中保留。</p>
+      <div class="toolbar">
+        <div class="seg" id="filterSeg">
+          <button type="button" data-filter="all" aria-pressed="true">全部</button>
+          <button type="button" data-filter="thesis">Thesis 标的</button>
+        </div>
+        <input type="search" id="searchBox" placeholder="搜索名称、代码或简介" autocomplete="off">
+        <span class="count" id="topCount"></span>
+      </div>
+      <div class="card">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr id="topHead"></tr>
+            </thead>
+            <tbody id="topBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      数据来源：<a href="https://www.coingecko.com" target="_blank" rel="noopener noreferrer">CoinGecko 公开接口</a>
+    </footer>
+  </div>
+
+  <script>
+
+(function () {
+  "use strict";
+
+  var REFRESH_MS = 60000;
+  var TOP100_URL = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d";
+  var THESIS_IDS = "bitcoin,ethereum,solana,binancecoin,zcash,pearl-2,near,hyperliquid,lighter";
+  var THESIS_URL = TOP100_URL + "&ids=" + THESIS_IDS;
+
+  var INTROS = {
+    "bitcoin": "首个去中心化数字货币，价值存储",
+    "ethereum": "支持智能合约的去中心化计算平台",
+    "tether": "Tether发行的美元稳定币",
+    "binancecoin": "币安生态与BNB链的原生代币",
+    "usd-coin": "Circle发行的美元稳定币",
+    "ripple": "用于跨境支付结算的数字资产",
+    "solana": "高性能智能合约公链",
+    "tron": "面向高吞吐应用的智能合约公链",
+    "figure-heloc": "在链上代币化住房净值贷款等信贷资产",
+    "hyperliquid": "高性能链上永续合约交易平台",
+    "zcash": "采用零知识证明的隐私数字货币",
+    "monero": "默认隐私保护的去中心化数字货币",
+    "dogecoin": "以柴犬梗图走红的社区加密货币",
+    "usds": "Sky协议发行的去中心化美元稳定币",
+    "leo-token": "Bitfinex交易所的平台效用代币",
+    "whitebit": "WhiteBIT交易所与其公链的原生代币",
+    "chainlink": "为智能合约提供链下数据的预言机网络",
+    "cardano": "采用学术同行评审的智能合约公链",
+    "ethena-usde": "Ethena发行的德尔塔中性合成美元",
+    "stellar": "面向跨境支付与资产发行的网络",
+    "dai": "Sky生态的超额抵押美元稳定币",
+    "bitcoin-cash": "自比特币分叉、侧重支付的数字货币",
+    "near": "面向易用性的分片智能合约公链",
+    "litecoin": "较早推出的比特币风格支付加密货币",
+    "avalanche-2": "可自定义子网的高性能智能合约公链",
+    "canton-network": "面向机构应用的隐私智能合约公链",
+    "uniswap": "以太坊上领先的去中心化交易协议",
+    "tether-gold": "Tether发行的黄金锚定代币",
+    "usd1-wlfi": "WLFI发行的美元稳定币",
+    "the-open-network": "The Open Network智能合约公链",
+    "sui": "采用Move语言的高性能智能合约公链",
+    "ripple-usd": "Ripple发行的美元稳定币",
+    "global-dollar": "Paxos发行的合规美元稳定币",
+    "paypal-usd": "PayPal发行的美元稳定币",
+    "rain": "Arbitrum上的去中心化期权与预测市场",
+    "hedera-hashgraph": "采用哈希图的企业级分布式账本",
+    "ondo-us-dollar-yield": "Ondo发行的美债收益型美元代币",
+    "shiba-inu": "以太坊上的社区驱动迷因代币",
+    "bittensor": "去中心化机器学习激励网络",
+    "crypto-com-chain": "Crypto.com生态与其公链的原生代币",
+    "quant-network": "连接多链与传统系统的互操作协议",
+    "hashnote-usyc": "Circle发行的短端美债货币市场代币",
+    "spiko-amundi-overnight-swap-fund-eur": "Spiko与Amundi的欧元隔夜收益代币化基金",
+    "memecore": "面向迷因币生态的一层智能合约公链",
+    "okb": "OKX交易所的平台效用代币",
+    "pax-gold": "Paxos发行的黄金锚定代币",
+    "pepe": "以青蛙梗图走红的迷因代币",
+    "aave": "去中心化超额抵押借贷协议",
+    "falcon-finance": "Falcon发行的合成美元稳定币",
+    "blackrock-usd-institutional-digital-liquidity-fund": "贝莱德代币化美元货币市场基金",
+    "united-stables": "以现金与稳定币储备锚定美元的稳定币",
+    "ethena": "发行合成美元USDe的去中心化协议",
+    "ondo-finance": "把美国国债等资产代币化的协议",
+    "world-liberty-financial": "发行USD1稳定币的去中心化金融项目",
+    "usdd": "TRON DAO管理的去中心化美元稳定币",
+    "aster-2": "去中心化永续合约交易平台",
+    "pump-fun": "Solana上的迷因币一键发行与交易平台",
+    "htx-dao": "HTX交易所生态的去中心化治理代币",
+    "bfusd": "币安发行的可计息美元稳定币",
+    "sky": "Maker升级后管理USDS的治理代币",
+    "polkadot": "连接多条平行链的互操作公链",
+    "morpho": "优化利率的去中心化借贷协议",
+    "internet-computer": "把应用直接跑在链上的智能合约公链",
+    "mantle": "以太坊上的模块化二层网络代币",
+    "just": "TRON上的借贷与稳定币等DeFi网络",
+    "bitget-token": "Bitget交易所的平台效用代币",
+    "usdgo": "OSL推出、Anchorage发行的合规美元稳定币",
+    "worldcoin-wld": "以虹膜验证推进全球身份与转账",
+    "venice-token": "注重隐私的生成式AI平台代币",
+    "open-usd": "面向企业支付的开放美元稳定币",
+    "ethereum-classic": "以太坊硬分叉后保留原链的智能合约平台",
+    "arbitrum": "以太坊上的Optimistic二层扩容网络",
+    "bitway": "Bitway生态用于收益、支付与融资的治理代币",
+    "jupiter-exchange-solana": "Solana上的去中心化交易聚合器",
+    "kucoin-shares": "库币交易所的平台效用代币",
+    "polygon-ecosystem-token": "Polygon生态原生代币，原名MATIC",
+    "midnight-3": "采用零知识证明的隐私智能合约公链",
+    "gatechain-token": "Gate.io交易所的平台效用代币",
+    "render-token": "去中心化GPU渲染与计算网络",
+    "kaspa": "采用区块有向无环图的工作量证明公链",
+    "lighter": "可验证撮合的去中心化交易平台",
+    "algorand": "采用纯权益证明的智能合约公链",
+    "pi-network": "可在手机上挖矿的加密货币项目",
+    "injective-protocol": "面向衍生品交易的智能合约公链",
+    "cosmos": "用IBC连接多链的Cosmos生态中枢",
+    "gho": "Aave协议发行的超额抵押美元稳定币",
+    "superstate-short-duration-us-government-securities-fund-ustb": "投资短端美国国债的代币化基金",
+    "nexo": "加密资产储蓄、借贷与交易平台代币",
+    "layerzero": "跨链消息与互操作协议代币",
+    "beldex": "注重交易与数据保密的隐私公链",
+    "janus-henderson-anemoy-aaa-clo-fund": "代币化AAA级CLO基金",
+    "xdce-crowd-sale": "面向贸易融资的企业级混合区块链",
+    "pearl-2": "以AI计算做有用工作量证明的一层公链",
+    "pancakeswap-token": "BNB链上的去中心化交易与收益平台",
+    "usual-usd": "由美债等RWA按1:1支持的美元稳定币",
+    "filecoin": "去中心化文件存储与检索网络",
+    "pieverse": "将时间视为可验证资产的TimeFi平台",
+    "euro-coin": "Circle发行的欧元稳定币",
+    "ether-fi": "以太坊流动质押与加密银行服务",
+    "blockstack": "为比特币网络引入智能合约的二层"
+};
+
+  var THESIS = {
+    bitcoin: { cat: "Money", role: "代表" },
+    zcash: { cat: "Money", role: "关注" },
+    "pearl-2": { cat: "Money", role: "关注" },
+    ethereum: { cat: "Issuing", role: "代表" },
+    solana: { cat: "Issuing", role: "代表" },
+    near: { cat: "Issuing", role: "关注" },
+    binancecoin: { cat: "Trading", role: "代表" },
+    hyperliquid: { cat: "Trading", role: "关注" },
+    lighter: { cat: "Trading", role: "关注" }
+  };
+
+  var PAIRS = [
+    { id: "zec-btc", label: "ZEC / BTC", assetId: "zcash", benchId: "bitcoin", asset: "ZEC", bench: "BTC" },
+    { id: "pearl-btc", label: "PEARL / BTC", assetId: "pearl-2", benchId: "bitcoin", asset: "PEARL", bench: "BTC" },
+    { id: "near-eth", label: "NEAR / ETH", assetId: "near", benchId: "ethereum", asset: "NEAR", bench: "ETH" },
+    { id: "near-sol", label: "NEAR / SOL", assetId: "near", benchId: "solana", asset: "NEAR", bench: "SOL" },
+    { id: "hype-bnb", label: "HYPE / BNB", assetId: "hyperliquid", benchId: "binancecoin", asset: "HYPE", bench: "BNB" },
+    { id: "lit-bnb", label: "LIT / BNB", assetId: "lighter", benchId: "binancecoin", asset: "LIT", bench: "BNB" }
+  ];
+
+  var SCENARIO_PCTS = [5, 10, 20, 50, 100];
+  var TOP_COLUMNS = [
+    { key: "rank", label: "排名", num: true },
+    { key: "token", label: "代币", num: false },
+    { key: "intro", label: "简介", num: false },
+    { key: "price", label: "价格", num: true },
+    { key: "mc", label: "市值", num: true },
+    { key: "fdv", label: "FDV", num: true },
+    { key: "chg24", label: "24h", num: true },
+    { key: "chg7d", label: "7d", num: true },
+    { key: "tag", label: "Thesis", num: false }
+  ];
+
+  function escapeHtml(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function fdvOf(coin) {
+    if (!coin) return NaN;
+    var v = coin.fully_diluted_valuation;
+    if (v == null || v === "") {
+      v = coin.market_cap;
+    }
+    v = Number(v);
+    return Number.isFinite(v) ? v : NaN;
+  }
+
+  function circRatio(coin) {
+    if (!coin) return NaN;
+    var circ = Number(coin.circulating_supply);
+    var den = coin.total_supply != null && Number(coin.total_supply) > 0
+      ? Number(coin.total_supply)
+      : Number(coin.max_supply);
+    if (!Number.isFinite(circ) || !Number.isFinite(den) || den <= 0) return NaN;
+    return circ / den;
+  }
+
+  function formatPrice(n) {
+    if (!Number.isFinite(n)) return "—";
+    var abs = Math.abs(n);
+    if (abs >= 1000) {
+      return "$" + n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    }
+    if (abs >= 1) {
+      return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    if (abs >= 0.01) {
+      return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 4, maximumFractionDigits: 4 });
+    }
+    if (abs === 0) return "$0.00";
+    return "$" + n.toLocaleString("en-US", { minimumFractionDigits: 6, maximumFractionDigits: 8 });
+  }
+
+  function formatUsd(n) {
+    if (!Number.isFinite(n)) return "—";
+    var sign = n < 0 ? "-" : "";
+    var abs = Math.abs(n);
+    if (abs >= 1e12) return sign + "$" + (abs / 1e12).toFixed(2) + "T";
+    if (abs >= 1e9) return sign + "$" + (abs / 1e9).toFixed(2) + "B";
+    if (abs >= 1e6) return sign + "$" + (abs / 1e6).toFixed(2) + "M";
+    if (abs >= 1e3) return sign + "$" + (abs / 1e3).toFixed(2) + "K";
+    return sign + "$" + abs.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  }
+
+  function formatPct(n, digits) {
+    if (!Number.isFinite(n)) return "—";
+    if (digits != null) return n.toFixed(digits) + "%";
+    if (Math.abs(n) >= 10) return n.toFixed(1) + "%";
+    return n.toFixed(2) + "%";
+  }
+
+  function formatChg(n) {
+    if (!Number.isFinite(n)) return "—";
+    var sign = n > 0 ? "+" : "";
+    return sign + n.toFixed(1) + "%";
+  }
+
+  function formatMult(n) {
+    if (!Number.isFinite(n)) return "—";
+    return n.toFixed(2) + "x";
+  }
+
+  function formatCirc(n) {
+    if (!Number.isFinite(n)) return "—";
+    var pct = n * 100;
+    if (pct >= 99.95) return "100%";
+    if (pct >= 10) return pct.toFixed(1) + "%";
+    return pct.toFixed(1) + "%";
+  }
+
+  function formatTokyo(date) {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return "—";
+    var text = new Intl.DateTimeFormat("zh-CN", {
+      timeZone: "Asia/Tokyo",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false
+    }).format(date);
+    return text + "（东京时间）";
+  }
+
+  function introOf(coin) {
+    if (!coin) return "—";
+    var text = INTROS[coin.id];
+    return text || "—";
+  }
+
+  function tagOf(coin) {
+    if (!coin || !THESIS[coin.id]) return "";
+    var t = THESIS[coin.id];
+    return t.cat + " · " + t.role;
+  }
+
+  function changeOf(coin, key) {
+    if (!coin) return NaN;
+    if (key === "7d") return Number(coin.price_change_percentage_7d_in_currency);
+    var v = coin.price_change_percentage_24h;
+    if (v == null) v = coin.price_change_percentage_24h_in_currency;
+    return Number(v);
+  }
+
+  function pairMetrics(pair, byId) {
+    var asset = byId[pair.assetId];
+    var bench = byId[pair.benchId];
+    var price = asset ? Number(asset.current_price) : NaN;
+    var fdv = fdvOf(asset);
+    var mc = asset ? Number(asset.market_cap) : NaN;
+    var benchFdv = fdvOf(bench);
+    var fdvShare = fdv / benchFdv;
+    var mcShare = mc / benchFdv;
+    var toParity = benchFdv / fdv;
+    return {
+      pair: pair,
+      asset: asset,
+      bench: bench,
+      price: price,
+      fdv: fdv,
+      mc: mc,
+      benchFdv: benchFdv,
+      circ: circRatio(asset),
+      fdvShare: fdvShare,
+      mcShare: mcShare,
+      toParity: toParity,
+      intro: introOf(asset)
+    };
+  }
+
+  function impliedPrice(metrics, targetPct) {
+    var currentPct = metrics.fdvShare * 100;
+    if (!Number.isFinite(currentPct) || currentPct === 0) return NaN;
+    if (!Number.isFinite(targetPct)) return NaN;
+    return metrics.price * (targetPct / currentPct);
+  }
+
+  function impliedFdv(metrics, targetPct) {
+    if (!Number.isFinite(metrics.benchFdv) || !Number.isFinite(targetPct)) return NaN;
+    return metrics.benchFdv * (targetPct / 100);
+  }
+
+  function mergeMarketLists(top100, thesisCoins) {
+    var byId = {};
+    var list = Array.isArray(top100) ? top100 : [];
+    var extra = Array.isArray(thesisCoins) ? thesisCoins : [];
+    list.concat(extra).forEach(function (coin) {
+      if (coin && coin.id) byId[coin.id] = coin;
+    });
+    return {
+      byId: byId,
+      top100: list.slice(),
+      thesisCoins: extra.slice()
+    };
+  }
+
+  var ThesisApp = {
+    INTROS: INTROS,
+    PAIRS: PAIRS,
+    THESIS: THESIS,
+    fdvOf: fdvOf,
+    circRatio: circRatio,
+    formatPrice: formatPrice,
+    formatUsd: formatUsd,
+    formatPct: formatPct,
+    formatMult: formatMult,
+    formatCirc: formatCirc,
+    pairMetrics: pairMetrics,
+    impliedPrice: impliedPrice,
+    impliedFdv: impliedFdv,
+    mergeMarketLists: mergeMarketLists
+  };
+  if (typeof globalThis !== "undefined") globalThis.ThesisApp = ThesisApp;
+
+  if (typeof document === "undefined") return;
+
+  var state = {
+    data: null,
+    loading: false,
+    error: "",
+    lastAt: null,
+    nextAt: 0,
+    pairId: "zec-btc",
+    target: "5",
+    filter: "all",
+    search: "",
+    sortKey: "rank",
+    sortDir: "asc"
+  };
+
+  var el = {
+    dot: document.getElementById("statusDot"),
+    lastUpdated: document.getElementById("lastUpdated"),
+    countdown: document.getElementById("countdown"),
+    refreshBtn: document.getElementById("refreshBtn"),
+    errorBanner: document.getElementById("errorBanner"),
+    insight: document.getElementById("insight"),
+    valuationBody: document.getElementById("valuationBody"),
+    categoryGrid: document.getElementById("categoryGrid"),
+    pairSeg: document.getElementById("pairSeg"),
+    targetInput: document.getElementById("targetInput"),
+    quickPct: document.getElementById("quickPct"),
+    calcProps: document.getElementById("calcProps"),
+    scenarioBody: document.getElementById("scenarioBody"),
+    filterSeg: document.getElementById("filterSeg"),
+    searchBox: document.getElementById("searchBox"),
+    topCount: document.getElementById("topCount"),
+    topHead: document.getElementById("topHead"),
+    topBody: document.getElementById("topBody")
+  };
+
+  function setError(msg) {
+    state.error = msg || "";
+    el.errorBanner.textContent = state.error;
+    el.errorBanner.classList.toggle("show", !!state.error);
+  }
+
+  function updateStatusChrome() {
+    el.dot.classList.toggle("busy", state.loading);
+    el.dot.classList.toggle("err", !!state.error && !state.loading);
+    el.lastUpdated.textContent = state.lastAt ? formatTokyo(state.lastAt) : "尚未加载";
+    el.refreshBtn.disabled = state.loading;
+    el.refreshBtn.textContent = state.loading ? "更新中…" : "刷新";
+    var remain = state.nextAt ? Math.max(0, Math.ceil((state.nextAt - Date.now()) / 1000)) : 0;
+    el.countdown.textContent = state.nextAt ? remain + " 秒" : "—";
+  }
+
+  function metricsFor(pairId) {
+    if (!state.data) return null;
+    var pair = PAIRS.filter(function (p) { return p.id === pairId; })[0];
+    if (!pair) return null;
+    return pairMetrics(pair, state.data.byId);
+  }
+
+  function renderInsight() {
+    if (!state.data) {
+      el.insight.textContent = "正在加载行情…";
+      return;
+    }
+    var parts = PAIRS.map(function (pair) {
+      var m = pairMetrics(pair, state.data.byId);
+      return pair.label + " " + formatPct(m.fdvShare * 100);
+    });
+    el.insight.innerHTML = "<strong>当前 FDV 占比</strong>：" + escapeHtml(parts.join("；")) + "。VAR 尚未上市，上线后加入。";
+  }
+
+  function renderValuation() {
+    if (!state.data) {
+      el.valuationBody.innerHTML = '<tr><td colspan="9">等待数据…</td></tr>';
+      return;
+    }
+    el.valuationBody.innerHTML = PAIRS.map(function (pair) {
+      var m = pairMetrics(pair, state.data.byId);
+      return "<tr>" +
+        "<td><strong>" + escapeHtml(pair.asset) + "</strong></td>" +
+        '<td class="intro">' + escapeHtml(m.intro) + "</td>" +
+        '<td class="num mono">' + escapeHtml(formatPrice(m.price)) + "</td>" +
+        '<td class="num mono">' + escapeHtml(formatUsd(m.fdv)) + "</td>" +
+        '<td class="num mono">' + escapeHtml(formatCirc(m.circ)) + "</td>" +
+        "<td>" + escapeHtml(pair.bench) + "</td>" +
+        '<td class="num mono">' + escapeHtml(formatPct(m.fdvShare * 100)) + "</td>" +
+        '<td class="num mono">' + escapeHtml(formatPct(m.mcShare * 100)) + "</td>" +
+        '<td class="num mono">' + escapeHtml(formatMult(m.toParity)) + "</td>" +
+        "</tr>";
+    }).join("");
+  }
+
+  function renderCategories() {
+    if (!state.data) {
+      el.categoryGrid.innerHTML = "";
+      return;
+    }
+    var groups = [
+      {
+        cat: "Money",
+        title: "Money",
+        caption: "代表币是 BTC，关注 ZEC 和 PEARL。",
+        ids: ["zec-btc", "pearl-btc"],
+        note: ""
+      },
+      {
+        cat: "Issuing",
+        title: "Issuing",
+        caption: "代表币是 ETH 和 SOL，关注 NEAR。NEAR 可分别对这两个标杆做相对估值。",
+        ids: ["near-sol", "near-eth"],
+        note: ""
+      },
+      {
+        cat: "Trading",
+        title: "Trading",
+        caption: "代表币是 BNB，关注 HYPE 和 LIT。",
+        ids: ["hype-bnb", "lit-bnb"],
+        note: "VAR 尚未上市，上线后加入"
+      }
+    ];
+    el.categoryGrid.innerHTML = groups.map(function (g) {
+      var rows = g.ids.map(function (id) {
+        var pair = PAIRS.filter(function (p) { return p.id === id; })[0];
+        return pairMetrics(pair, state.data.byId);
+      });
+      var maxShare = 0;
+      rows.forEach(function (m) {
+        if (Number.isFinite(m.fdvShare) && m.fdvShare > maxShare) maxShare = m.fdvShare;
+      });
+      var bars = rows.map(function (m) {
+        var width = maxShare > 0 && Number.isFinite(m.fdvShare) ? (m.fdvShare / maxShare) * 100 : 0;
+        return '<div class="bar-row"><div class="bar-meta"><span>' +
+          escapeHtml(m.pair.label) + '</span><span class="val">' +
+          escapeHtml(formatPct(m.fdvShare * 100)) +
+          "</span></div><div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:" +
+          width.toFixed(2) + '%"></div></div></div>';
+      }).join("");
+      var note = g.note ? '<p class="note">' + escapeHtml(g.note) + "</p>" : "";
+      return '<div class="card cat-card ' + g.cat + '"><h3>' + escapeHtml(g.title) +
+        '</h3><p class="caption">' + escapeHtml(g.caption) + "</p>" + bars + note + "</div>";
+    }).join("");
+  }
+
+  function renderPairSeg() {
+    el.pairSeg.innerHTML = PAIRS.map(function (p) {
+      var pressed = p.id === state.pairId;
+      return '<button type="button" data-pair="' + p.id + '" aria-pressed="' +
+        pressed + '">' + escapeHtml(p.label) + "</button>";
+    }).join("");
+  }
+
+  function renderQuick() {
+    el.quickPct.innerHTML = SCENARIO_PCTS.map(function (n) {
+      var pressed = String(n) === String(state.target);
+      return '<button type="button" data-pct="' + n + '" aria-pressed="' +
+        pressed + '">' + n + "%</button>";
+    }).join("");
+  }
+
+  function renderCalculator() {
+    renderPairSeg();
+    renderQuick();
+    if (document.activeElement !== el.targetInput) {
+      el.targetInput.value = state.target;
+    }
+    if (!state.data) {
+      el.calcProps.innerHTML = '<div class="prop"><div class="k">状态</div><div class="v">等待数据…</div></div>';
+      return;
+    }
+    var m = metricsFor(state.pairId);
+    var targetPct = Number(state.target);
+    var hasTarget = Number.isFinite(targetPct) && targetPct > 0;
+    var nowPct = m.fdvShare * 100;
+    var iFdv = hasTarget ? impliedFdv(m, targetPct) : NaN;
+    var iPrice = hasTarget ? impliedPrice(m, targetPct) : NaN;
+    var iMult = hasTarget && Number.isFinite(nowPct) && nowPct !== 0 ? targetPct / nowPct : NaN;
+    var multClass = Number.isFinite(iMult) ? (iMult < 1 ? "down" : (iMult > 1 ? "up" : "")) : "";
+    var multText = formatMult(iMult);
+    if (Number.isFinite(iMult) && iMult < 1) multText += "（低于现价）";
+    var items;
+    if (!hasTarget) {
+      items = [{ k: "提示", v: "请输入大于 0 的目标占比", cls: "" }];
+    } else {
+      items = [
+        { k: "当前 FDV 占比", v: formatPct(nowPct), cls: "" },
+        { k: "目标 FDV 占比", v: formatPct(targetPct), cls: "" },
+        { k: "隐含 FDV", v: formatUsd(iFdv), cls: "" },
+        { k: "隐含价格", v: formatPrice(iPrice), cls: "" },
+        { k: "相对现价", v: multText, cls: multClass }
+      ];
+    }
+    el.calcProps.innerHTML = items.map(function (item) {
+      return '<div class="prop"><div class="k">' + escapeHtml(item.k) +
+        '</div><div class="v ' + item.cls + '">' + escapeHtml(item.v) + "</div></div>";
+    }).join("");
+  }
+
+  function renderScenarios() {
+    if (!state.data) {
+      el.scenarioBody.innerHTML = '<tr><td colspan="9">等待数据…</td></tr>';
+      return;
+    }
+    el.scenarioBody.innerHTML = PAIRS.map(function (pair) {
+      var m = pairMetrics(pair, state.data.byId);
+      var cells = SCENARIO_PCTS.map(function (pct) {
+        return '<td class="num mono">' + escapeHtml(formatPrice(impliedPrice(m, pct))) + "</td>";
+      }).join("");
+      return "<tr><td><strong>" + escapeHtml(pair.asset) + "</strong></td><td>" +
+        escapeHtml(pair.bench) + '</td><td class="num mono">' +
+        escapeHtml(formatPct(m.fdvShare * 100)) + '</td><td class="num mono">' +
+        escapeHtml(formatPrice(m.price)) + "</td>" + cells + "</tr>";
+    }).join("");
+  }
+
+  function sortValue(coin, key) {
+    if (key === "rank") return Number(coin.market_cap_rank) || 1e12;
+    if (key === "token") return (coin.symbol || "") + " " + (coin.name || "");
+    if (key === "intro") return introOf(coin);
+    if (key === "price") return Number(coin.current_price);
+    if (key === "mc") return Number(coin.market_cap);
+    if (key === "fdv") return fdvOf(coin);
+    if (key === "chg24") return changeOf(coin, "24h");
+    if (key === "chg7d") return changeOf(coin, "7d");
+    if (key === "tag") return tagOf(coin);
+    return 0;
+  }
+
+  function visibleTopCoins() {
+    if (!state.data) return [];
+    var coins;
+    if (state.filter === "thesis") {
+      var seen = {};
+      coins = [];
+      Object.keys(THESIS).forEach(function (id) {
+        if (state.data.byId[id]) {
+          coins.push(state.data.byId[id]);
+          seen[id] = true;
+        }
+      });
+    } else {
+      coins = state.data.top100.slice();
+    }
+    var q = state.search.trim().toLowerCase();
+    if (q) {
+      coins = coins.filter(function (c) {
+        var blob = [c.symbol, c.name, c.id, introOf(c), tagOf(c)].join(" ").toLowerCase();
+        return blob.indexOf(q) !== -1;
+      });
+    }
+    var key = state.sortKey;
+    var dir = state.sortDir === "desc" ? -1 : 1;
+    coins = coins.slice().sort(function (a, b) {
+      var va = sortValue(a, key);
+      var vb = sortValue(b, key);
+      var na = typeof va === "number";
+      var nb = typeof vb === "number";
+      if (na && nb) {
+        var fa = Number.isFinite(va);
+        var fb = Number.isFinite(vb);
+        if (!fa && !fb) return 0;
+        if (!fa) return 1;
+        if (!fb) return -1;
+        if (va === vb) return 0;
+        return va > vb ? dir : -dir;
+      }
+      return String(va).localeCompare(String(vb), "zh-CN") * dir;
+    });
+    return coins;
+  }
+
+  function renderTopHead() {
+    el.topHead.innerHTML = TOP_COLUMNS.map(function (col) {
+      var active = state.sortKey === col.key;
+      var arrow = active ? (state.sortDir === "asc" ? "▲" : "▼") : "";
+      var cls = (col.num ? "num " : "") + "sortable";
+      return '<th class="' + cls + '"><button type="button" data-sort="' + col.key +
+        '">' + escapeHtml(col.label) +
+        (arrow ? '<span class="sort-ind">' + arrow + "</span>" : "") +
+        "</button></th>";
+    }).join("");
+  }
+
+  function chgCell(n) {
+    if (!Number.isFinite(n)) return "—";
+    var cls = n > 0 ? "chg up" : (n < 0 ? "chg down" : "chg");
+    return '<span class="' + cls + '">' + escapeHtml(formatChg(n)) + "</span>";
+  }
+
+  function renderTop() {
+    renderTopHead();
+    if (!state.data) {
+      el.topBody.innerHTML = '<tr><td colspan="9">等待数据…</td></tr>';
+      el.topCount.textContent = "";
+      return;
+    }
+    var coins = visibleTopCoins();
+    var total = state.filter === "thesis" ? Object.keys(THESIS).length : state.data.top100.length;
+    el.topCount.textContent = "显示 " + coins.length + " / " + total;
+    if (!coins.length) {
+      el.topBody.innerHTML = '<tr><td colspan="9">没有符合条件的代币</td></tr>';
+      return;
+    }
+    el.topBody.innerHTML = coins.map(function (c) {
+      var tag = tagOf(c);
+      var tagHtml = tag
+        ? '<span class="tag ' + escapeHtml(THESIS[c.id].cat) + '">' + escapeHtml(tag) + "</span>"
+        : "—";
+      var img = c.image
+        ? '<img src="' + escapeHtml(c.image) + '" alt="" width="22" height="22" loading="lazy" onerror="this.remove()">'
+        : "";
+      var rank = c.market_cap_rank != null ? c.market_cap_rank : "—";
+      return '<tr><td class="num mono">' + escapeHtml(String(rank)) + "</td>" +
+        '<td><div class="coin">' + img + "<div><span class=\"sym\">" +
+        escapeHtml((c.symbol || "").toUpperCase()) +
+        '</span><span class="name">' + escapeHtml(c.name || "") +
+        "</span></div></div></td>" +
+        '<td class="intro">' + escapeHtml(introOf(c)) + "</td>" +
+        '<td class="num mono">' + escapeHtml(formatPrice(Number(c.current_price))) + "</td>" +
+        '<td class="num mono">' + escapeHtml(formatUsd(Number(c.market_cap))) + "</td>" +
+        '<td class="num mono">' + escapeHtml(formatUsd(fdvOf(c))) + "</td>" +
+        '<td class="num">' + chgCell(changeOf(c, "24h")) + "</td>" +
+        '<td class="num">' + chgCell(changeOf(c, "7d")) + "</td>" +
+        "<td>" + tagHtml + "</td></tr>";
+    }).join("");
+  }
+
+  function renderAll() {
+    updateStatusChrome();
+    renderInsight();
+    renderValuation();
+    renderCategories();
+    renderCalculator();
+    renderScenarios();
+    renderTop();
+  }
+
+  async function fetchJson(url) {
+    var res = await fetch(url, { cache: "no-store" });
+    if (res.status === 429) {
+      var err = new Error("RATE_LIMIT");
+      err.status = 429;
+      throw err;
+    }
+    if (!res.ok) {
+      var err2 = new Error("HTTP_" + res.status);
+      err2.status = res.status;
+      throw err2;
+    }
+    var data = await res.json();
+    if (!Array.isArray(data)) {
+      throw new Error("BAD_PAYLOAD");
+    }
+    return data;
+  }
+
+  async function refresh() {
+    if (state.loading) return;
+    state.loading = true;
+    updateStatusChrome();
+    try {
+      var results = await Promise.all([fetchJson(TOP100_URL), fetchJson(THESIS_URL)]);
+      state.data = mergeMarketLists(results[0], results[1]);
+      state.lastAt = new Date();
+      setError("");
+    } catch (err) {
+      var msg;
+      if (err && err.status === 429) {
+        msg = state.data
+          ? "请求过于频繁（HTTP 429），已保留上次数据，将在下个周期自动重试。"
+          : "请求过于频繁（HTTP 429），将在下个周期自动重试。";
+      } else if (err && err.status) {
+        msg = state.data
+          ? "数据请求失败（HTTP " + err.status + "），已保留上次数据，将在下个周期自动重试。"
+          : "数据请求失败（HTTP " + err.status + "），将在下个周期自动重试。";
+      } else if (err && err.message === "BAD_PAYLOAD") {
+        msg = "CoinGecko 返回了无法解析的数据，将在下个周期自动重试。";
+      } else {
+        msg = state.data
+          ? "网络请求失败，已保留上次数据，将在下个周期自动重试。"
+          : "网络请求失败，将在下个周期自动重试。若持续失败，请检查网络后点击刷新。";
+      }
+      setError(msg);
+    } finally {
+      state.loading = false;
+      state.nextAt = Date.now() + REFRESH_MS;
+      renderAll();
+    }
+  }
+
+  function onTick() {
+    updateStatusChrome();
+    if (!state.loading && state.nextAt && Date.now() >= state.nextAt) {
+      refresh();
+    }
+  }
+
+  el.refreshBtn.addEventListener("click", function () {
+    state.nextAt = Date.now() + REFRESH_MS;
+    refresh();
+  });
+
+  el.pairSeg.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button[data-pair]");
+    if (!btn) return;
+    state.pairId = btn.getAttribute("data-pair");
+    renderCalculator();
+  });
+
+  el.quickPct.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button[data-pct]");
+    if (!btn) return;
+    state.target = btn.getAttribute("data-pct");
+    el.targetInput.value = state.target;
+    renderCalculator();
+  });
+
+  el.targetInput.addEventListener("input", function () {
+    state.target = el.targetInput.value;
+    renderCalculator();
+  });
+
+  el.filterSeg.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button[data-filter]");
+    if (!btn) return;
+    state.filter = btn.getAttribute("data-filter");
+    Array.prototype.forEach.call(el.filterSeg.querySelectorAll("button"), function (b) {
+      b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+    });
+    renderTop();
+  });
+
+  el.searchBox.addEventListener("input", function () {
+    state.search = el.searchBox.value;
+    renderTop();
+  });
+
+  el.topHead.addEventListener("click", function (ev) {
+    var btn = ev.target.closest("button[data-sort]");
+    if (!btn) return;
+    var key = btn.getAttribute("data-sort");
+    if (state.sortKey === key) {
+      state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+    } else {
+      state.sortKey = key;
+      state.sortDir = key === "token" || key === "intro" || key === "tag" ? "asc" : "desc";
+      if (key === "rank") state.sortDir = "asc";
+    }
+    renderTop();
+  });
+
+  renderAll();
+  refresh();
+  setInterval(onTick, 1000);
+})();
+
+  </script>
+</body>
+</html>
