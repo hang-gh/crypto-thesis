@@ -731,7 +731,7 @@
     "pearl-2": { cat: "Money", role: "关注" },
     ethereum: { cat: "Issuing", role: "代表" },
     solana: { cat: "Issuing", role: "代表" },
-    sui: { cat: "Issuing", role: "代表" },
+    sui: { cat: "Issuing", role: "关注" },
     near: { cat: "Issuing", role: "关注" },
     binancecoin: { cat: "Trading", role: "代表" },
     hyperliquid: { cat: "Trading", role: "关注" },
@@ -743,7 +743,8 @@
     { id: "pearl-btc", label: "PEARL / BTC", assetId: "pearl-2", benchId: "bitcoin", asset: "PEARL", bench: "BTC" },
     { id: "near-eth", label: "NEAR / ETH", assetId: "near", benchId: "ethereum", asset: "NEAR", bench: "ETH" },
     { id: "near-sol", label: "NEAR / SOL", assetId: "near", benchId: "solana", asset: "NEAR", bench: "SOL" },
-    { id: "near-sui", label: "NEAR / SUI", assetId: "near", benchId: "sui", asset: "NEAR", bench: "SUI" },
+    { id: "sui-eth", label: "SUI / ETH", assetId: "sui", benchId: "ethereum", asset: "SUI", bench: "ETH" },
+    { id: "sui-sol", label: "SUI / SOL", assetId: "sui", benchId: "solana", asset: "SUI", bench: "SOL" },
     { id: "hype-bnb", label: "HYPE / BNB", assetId: "hyperliquid", benchId: "binancecoin", asset: "HYPE", bench: "BNB" },
     { id: "lit-bnb", label: "LIT / BNB", assetId: "lighter", benchId: "binancecoin", asset: "LIT", bench: "BNB" }
   ];
@@ -1057,8 +1058,8 @@
       {
         cat: "Issuing",
         title: "Issuing",
-        caption: "代表币是 ETH、SOL 和 SUI，关注 NEAR。NEAR 可分别对这三个标杆做相对估值。",
-        ids: ["near-sol", "near-eth", "near-sui"],
+        caption: "代表币是 ETH 和 SOL，关注 NEAR 和 SUI。NEAR 和 SUI 可分别对这两个标杆做相对估值。",
+        ids: ["near-sol", "near-eth", "sui-sol", "sui-eth"],
         note: ""
       },
       {
