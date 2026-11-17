@@ -619,7 +619,7 @@
 
   var REFRESH_MS = 60000;
   var TOP100_URL = "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false&price_change_percentage=24h,7d";
-  var THESIS_IDS = "bitcoin,ethereum,solana,binancecoin,zcash,pearl-2,near,hyperliquid,lighter";
+  var THESIS_IDS = "bitcoin,ethereum,solana,sui,binancecoin,zcash,pearl-2,near,hyperliquid,lighter";
   var THESIS_URL = TOP100_URL + "&ids=" + THESIS_IDS;
 
   var INTROS = {
@@ -731,6 +731,7 @@
     "pearl-2": { cat: "Money", role: "关注" },
     ethereum: { cat: "Issuing", role: "代表" },
     solana: { cat: "Issuing", role: "代表" },
+    sui: { cat: "Issuing", role: "代表" },
     near: { cat: "Issuing", role: "关注" },
     binancecoin: { cat: "Trading", role: "代表" },
     hyperliquid: { cat: "Trading", role: "关注" },
@@ -742,6 +743,7 @@
     { id: "pearl-btc", label: "PEARL / BTC", assetId: "pearl-2", benchId: "bitcoin", asset: "PEARL", bench: "BTC" },
     { id: "near-eth", label: "NEAR / ETH", assetId: "near", benchId: "ethereum", asset: "NEAR", bench: "ETH" },
     { id: "near-sol", label: "NEAR / SOL", assetId: "near", benchId: "solana", asset: "NEAR", bench: "SOL" },
+    { id: "near-sui", label: "NEAR / SUI", assetId: "near", benchId: "sui", asset: "NEAR", bench: "SUI" },
     { id: "hype-bnb", label: "HYPE / BNB", assetId: "hyperliquid", benchId: "binancecoin", asset: "HYPE", bench: "BNB" },
     { id: "lit-bnb", label: "LIT / BNB", assetId: "lighter", benchId: "binancecoin", asset: "LIT", bench: "BNB" }
   ];
@@ -1055,8 +1057,8 @@
       {
         cat: "Issuing",
         title: "Issuing",
-        caption: "代表币是 ETH 和 SOL，关注 NEAR。NEAR 可分别对这两个标杆做相对估值。",
-        ids: ["near-sol", "near-eth"],
+        caption: "代表币是 ETH、SOL 和 SUI，关注 NEAR。NEAR 可分别对这三个标杆做相对估值。",
+        ids: ["near-sol", "near-eth", "near-sui"],
         note: ""
       },
       {
